@@ -1,4 +1,10 @@
-title: Brayan
+title: Brayan's Blog
 description: ML research & build logs
 theme: minima
-author: Brayan
+author:
+  name: Brayan
+
+minima:
+  skin: classic
+  social_links:
+    github: Brayanbrayan
