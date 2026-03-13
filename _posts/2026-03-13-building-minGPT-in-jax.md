@@ -6,7 +6,7 @@ date: 2026-03-13
 
 # Building a GPT from Scratch in JAX/Flax
 
-![JAX](jax_logo_250px.png)
+![JAX](jax_logo.png)
 
 *A honest account of building a transformer language model using JAX, Flax NNX, and the TinyStories dataset — including every wall I hit along the way.*
 
