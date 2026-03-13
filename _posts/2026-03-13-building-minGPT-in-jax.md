@@ -62,6 +62,7 @@ Linear Projection → Logits (batch_size, seq_len, vocab_size)
 | Vocabulary | GPT-2 tokenizer (50,257 tokens) |
 
 ![Transformer architecture](/images/transformer_arch.png)
+
 *The transformer architecture — our model uses the decoder side (right) only.*
 
 Small by modern standards, but trainable on a single GPU and expressive enough to learn story structure.
@@ -84,8 +85,10 @@ class TokenAndPositionEmbedding(nnx.Module):
         return self.token_emb(x) + self.pos_emb(positions)
 ```
 
-The key line is `jnp.arange(seq_len)[None, :]` — the `[None, :]` adds a batch dimension so positions broadcast correctly across the batch. This is a pattern you'll use constantly in JAX.
-![Causal mask](/images/causal.png)
+The key line is `jnp.arange(seq_len)[None, :]` — the `[None, :]` adds a batch dimension so positions broadcast correctly across the batch. This is a pattern  used constantly in JAX.
+
+![Positional encoding](/images/pos_encoding.jpg)
+
 *Token embeddings encode meaning; positional embeddings encode order. Both are summed before entering the transformer.*
 
 ---
@@ -116,6 +119,7 @@ class MiniGPT(nnx.Module):
 `jnp.tril` produces a lower-triangular matrix of ones. Position (i, j) is 1 if j ≤ i, meaning token i is allowed to attend to token j. This single matrix enforces the autoregressive property of the model.
 
 ![Causal mask](/images/causal.png)
+
 *The causal mask — each token (row) can only attend to itself and previous tokens (columns). Future positions are masked out.*
 
 ---
@@ -252,6 +256,7 @@ This also means you can load someone else's checkpoint on your machine, instantl
 Generation uses greedy decoding (argmax) with temperature scaling:
 
 ![Autoregressive generation](/images/AutoGen.png)
+
 *Autoregressive generation — the model predicts one token at a time, appending each prediction back to the input for the next step.*
 
 ```python
@@ -290,36 +295,11 @@ The line `logits[0, actual_len - 1, :]` is easy to get wrong. You want the logit
 
 ---
 
-## The Colab Path Problem (And How to Never Hit It Again)
 
-If you're running this on Google Colab with Drive, you will hit import errors. The root cause: `helper` is a reserved name in Colab's environment. Importing `from helper import ...` silently loads Colab's built-in helper, not yours.
-
-The fix is simple — name your files specifically:
-
-```
-# Bad
-helper.py
-
-# Good  
-story_helper.py
-```
-
-And always use absolute paths. Never relative:
-
-```python
-# Bad — breaks whenever the working directory changes
-stories = load_stories_from_file("TinyStories-1000.txt")
-
-# Good — works from anywhere
-BASE = "/content/drive/MyDrive/minGPT _Implementation"
-stories = load_stories_from_file(f"{BASE}/Training/TinyStories-1000.txt")
-```
-
----
 
 ## Results
 
-![Screenshot of generation](/images/Screenshot 2026-03-13 112840.png)
+![Screenshot of generation](/images/generation_output.png)
 
 Trained on the TinyStories dataset with a 20M-token checkpoint, the model generates coherent short stories:
 
@@ -348,7 +328,7 @@ The model learned basic story structure, character introduction, and simple caus
 The full code is on GitHub: [MinGPT-Implementation-with-Jax](https://github.com/Brayanbrayan/MinGPT-Implementation-with-Jax)
 
 A Colab notebook is included — mount your Drive, run the cells, and you can load the pretrained checkpoint and start generating stories in under a minute.
-
+       
 ---
 
 *Built with JAX, Flax NNX, Optax, Orbax, Grain, and tiktoken.*
