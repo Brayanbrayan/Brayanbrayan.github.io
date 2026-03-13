@@ -6,7 +6,7 @@ date: 2026-03-13
 
 # Building a GPT from Scratch in JAX/Flax
 
-![JAX](jax_logo.png)
+![JAX logo](/images/jax_logo.png)
 
 *A honest account of building a transformer language model using JAX, Flax NNX, and the TinyStories dataset — including every wall I hit along the way.*
 
@@ -61,7 +61,7 @@ Linear Projection → Logits (batch_size, seq_len, vocab_size)
 | Max sequence length | 128 |
 | Vocabulary | GPT-2 tokenizer (50,257 tokens) |
 
-![Transformer Architecture](https://media.geeksforgeeks.org/wp-content/uploads/20200622212149/transformer_architecture.png)
+![Transformer architecture](/images/transformer_arch.png)
 *The transformer architecture — our model uses the decoder side (right) only.*
 
 Small by modern standards, but trainable on a single GPU and expressive enough to learn story structure.
@@ -85,8 +85,7 @@ class TokenAndPositionEmbedding(nnx.Module):
 ```
 
 The key line is `jnp.arange(seq_len)[None, :]` — the `[None, :]` adds a batch dimension so positions broadcast correctly across the batch. This is a pattern you'll use constantly in JAX.
-
-![Positional Encoding](https://machinelearningmastery.com/wp-content/uploads/2022/01/PE3.png)
+![Causal mask](/images/causal.png)
 *Token embeddings encode meaning; positional embeddings encode order. Both are summed before entering the transformer.*
 
 ---
@@ -116,7 +115,7 @@ class MiniGPT(nnx.Module):
 
 `jnp.tril` produces a lower-triangular matrix of ones. Position (i, j) is 1 if j ≤ i, meaning token i is allowed to attend to token j. This single matrix enforces the autoregressive property of the model.
 
-![Causal Attention Mask](https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F8b4a1a0a-9b0c-4b5b-8b0a-1b0a1b0a1b0a_1200x800.png)
+![Causal mask](/images/causal.png)
 *The causal mask — each token (row) can only attend to itself and previous tokens (columns). Future positions are masked out.*
 
 ---
@@ -204,7 +203,6 @@ def train_step(model, optimizer, metrics, batch):
 
 The `@nnx.jit` decorator compiles the entire train step — forward pass, loss computation, gradient calculation, and weight update — into a single XLA kernel. The first call is slow (compilation), every subsequent call is fast.
 
-![JAX JIT XLA](https://jax.readthedocs.io/en/latest/_images/jax_xla_compilation.png)
 *How `@jax.jit` works — Python traces your function once, XLA compiles it, then every subsequent call skips Python entirely.*
 
 **A subtle bug to watch for in the training loop:**
@@ -253,7 +251,7 @@ This also means you can load someone else's checkpoint on your machine, instantl
 
 Generation uses greedy decoding (argmax) with temperature scaling:
 
-![Autoregressive Generation](https://heidloff.net/assets/img/2023/09/token-prediction.png)
+![Autoregressive generation](/images/AutoGen.png)
 *Autoregressive generation — the model predicts one token at a time, appending each prediction back to the input for the next step.*
 
 ```python
@@ -320,6 +318,8 @@ stories = load_stories_from_file(f"{BASE}/Training/TinyStories-1000.txt")
 ---
 
 ## Results
+
+![Screenshot of generation](/images/Screenshot 2026-03-13 112840.png)
 
 Trained on the TinyStories dataset with a 20M-token checkpoint, the model generates coherent short stories:
 
