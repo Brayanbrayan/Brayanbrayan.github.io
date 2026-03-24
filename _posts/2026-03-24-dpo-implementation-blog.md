@@ -2,7 +2,7 @@
 layout: post
 title: "Implementing Direct Preference Optimization (DPO)"
 subtitle: "A ground-up implementation of DPO from the Rafailov et al. 2023 paper, trained on tatsu-lab/alpaca as part of a multi-stage RLHF project"
-date: 2025-03-24
+date: 2026-03-24
 categories: [machine-learning, rlhf]
 tags: [dpo, rlhf, alignment, nlp, transformers, pytorch]
 series: "Multi-Stage RLHF from Scratch"
@@ -29,36 +29,37 @@ DPO is chosen as the final stage because it represents the most elegant solution
 Standard RLHF (as used in PPO and InstructGPT) has two stages after SFT: first train a reward model on human preference data, then use reinforcement learning to maximise the learned reward subject to a KL constraint from the reference policy. The optimisation objective is:
 
 $$
-\max_{\pi_\theta} \; \mathbb{E}_{x \sim \mathcal{D},\, y \sim \pi_\theta} \left[ r_\phi(x, y) \right] - \beta \cdot \mathrm{KL}\!\left[ \pi_\theta(y \mid x) \;\|\; \pi_\mathrm{ref}(y \mid x) \right] \tag{1}
+\max_{\pi_\theta} \; \mathbb{E}_{x \sim \mathcal{D}, \, y \sim \pi_\theta} \left[ r_\phi(x, y) \right] - \beta \cdot \mathrm{KL}\!\left[ \pi_\theta(y \mid x) \;\|\; \pi_\mathrm{ref}(y \mid x) \right] \quad (1)
 $$
 
 This is expensive: it requires sampling from the LM during training, maintaining a separate reward model and critic, and careful hyperparameter tuning of the KL coefficient. The paper's central insight is that this objective has a closed-form optimal solution:
 
 $$
-\pi^*(y \mid x) = \frac{1}{Z(x)} \cdot \pi_\mathrm{ref}(y \mid x) \cdot \exp\!\left( \frac{r(x,y)}{\beta} \right) \tag{2}
+\pi^*(y \mid x) = \frac{1}{Z(x)} \cdot \pi_\mathrm{ref}(y \mid x) \cdot \exp\!\left( \frac{r(x,y)}{\beta} \right) \quad (2)
 $$
 
 Rearranging this to express the reward in terms of the policy gives:
 
 $$
-r(x, y) = \beta \cdot \log\!\left[ \frac{\pi_\theta(y \mid x)}{\pi_\mathrm{ref}(y \mid x)} \right] + \beta \cdot \log Z(x) \tag{3}
+r(x, y) = \beta \cdot \log\!\left[ \frac{\pi_\theta(y \mid x)}{\pi_\mathrm{ref}(y \mid x)} \right] + \beta \cdot \log Z(x) \quad (3)
 $$
 
-The key observation is that when this reparameterisation is substituted into the Bradley-Terry preference model, the intractable partition function $Z(x)$ cancels out entirely. This allows the preference probability to be expressed purely in terms of the policy and the reference — no reward model required.
+The key observation is that when this reparameterisation is substituted into the Bradley-Terry preference model, the intractable partition function $Z(x)$ cancels out entirely. This allows the preference probability to be expressed purely in terms of the policy and the reference—no reward model required.
 
 ### 2.2 The DPO loss
 
 Substituting the reparameterised reward into the Bradley-Terry preference model and framing it as a maximum likelihood objective over preference pairs $(x, y_w, y_l)$ yields the DPO loss:
 
 $$
-\mathcal{L}_\mathrm{DPO} = -\mathbb{E}\!\left[ \log \sigma\!\left( \beta \cdot \log\frac{\pi_\theta(y_w \mid x)}{\pi_\mathrm{ref}(y_w \mid x)} - \beta \cdot \log\frac{\pi_\theta(y_l \mid x)}{\pi_\mathrm{ref}(y_l \mid x)} \right) \right] \tag{4}
+\mathcal{L}_\mathrm{DPO} = -\mathbb{E}\!\left[ \log \sigma\!\left( \beta \cdot \log\frac{\pi_\theta(y_w \mid x)}{\pi_\mathrm{ref}(y_w \mid x)} - \beta \cdot \log\frac{\pi_\theta(y_l \mid x)}{\pi_\mathrm{ref}(y_l \mid x)} \right) \right] \quad (4)
 $$
 
-Where $y_w$ is the chosen (preferred) response, $y_l$ is the rejected (dispreferred) response, and $\beta$ controls how tightly the policy stays near the reference. This is a binary cross-entropy loss — the model learns to assign higher implicit reward to chosen over rejected, with the gradient automatically weighting harder examples more heavily.
+Where $y_w$ is the chosen (preferred) response, $y_l$ is the rejected (dispreferred) response, and $\beta$ controls how tightly the policy stays near the reference. This is a binary cross-entropy loss—the model learns to assign higher implicit reward to chosen over rejected, with the gradient automatically weighting harder examples more heavily.
 
 ### 2.3 What the gradient does
 
-The paper provides an explicit gradient analysis. Increasing the DPO loss parameters $\theta$ increases the log-probability of $y_w$ and decreases the log-probability of $y_l$. Crucially, the weight applied to each example is $\sigma(\hat{r}_\theta(x, y_l) - \hat{r}_\theta(x, y_w))$ — proportional to how much the current model incorrectly ranks the rejected response over the chosen one. This dynamic weighting prevents trivial updates on already-solved pairs and concentrates learning on the hardest examples.
+The paper provides an explicit gradient analysis. Increasing the DPO loss parameters $\theta$ increases the log-probability of $y_w$ and decreases the log-probability of $y_l$. Crucially, the weight applied to each example is $\sigma(\hat{r}_\theta(x, y_l) - \hat{r}_\theta(x, y_w))$—proportional to how much the current model incorrectly ranks the rejected response over the chosen one. This dynamic weighting prevents trivial updates on already-solved pairs and concentrates learning on the hardest examples.
+
 
 ### 2.4 Experimental setup in the paper
 
