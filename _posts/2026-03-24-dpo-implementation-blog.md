@@ -76,7 +76,7 @@ The policy uses the `PolicyWithValue` class introduced in Part 8 (PPO). It wraps
 
 The reference model is an identical frozen copy of the SFT checkpoint. Its weights are fixed throughout training. All reference log-probabilities are computed inside `torch.no_grad()` blocks.
 
-![DPO Pipeline Architecture](/images/dpo/chart_arch.png)
+![DPO Pipeline Architecture](/images/chart_arch.png)
 *Figure 3 — DPO pipeline: the frozen reference model and the trainable policy both receive the preference pair and output log-probabilities that feed the DPO loss. Gradients flow only to the trainable policy.*
 
 ### 3.2 The dataset challenge
@@ -179,7 +179,7 @@ The most important metric to examine is the reward margin — the mean gap betwe
 
 Margins of this magnitude indicate that the policy has drifted very far from the reference distribution. The loss reaching zero and staying there is not evidence of good generalisation — it is evidence that the model has memorised the preference signal on each individual pair to the point where it assigns near-zero probability mass to the rejected response. This is reward hacking in the DPO sense: the policy has exploited the training signal rather than learning a generalisable preference.
 
-![Training Dynamics](/images/dpo/chart_training.png)
+![Training Dynamics](/images/chart_training.png)
 *Figure 1 — DPO training dynamics over 200 steps. Blue: loss (left axis). Red dashed: reward margin (right axis). Note the margin explosion after step 30, reaching 599 at step 150.*
 
 > **Root cause**
@@ -213,7 +213,7 @@ Post-training evaluation was run on 16 standard prompts using the Part 7 reward 
 | Classify: Oak tree, copper ore, elephant | 7.84 | 2.59 |
 | Explain the use of word embeddings in NLP | 7.82 | 4.27 |
 
-![Per-Prompt Reward Scores](/images/dpo/chart_rewards.png)
+![Per-Prompt Reward Scores](/images/chart_rewards.png)
 *Figure 2 — Per-prompt reward scores for 16 evaluation prompts. Blue bars = positive reward; red bars = negative reward. Average: 2.40.*
 
 ### 5.2 Response quality
