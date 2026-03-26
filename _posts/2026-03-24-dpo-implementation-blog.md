@@ -28,37 +28,29 @@ DPO is chosen as the final stage because it represents the most elegant solution
 
 Standard RLHF (as used in PPO and InstructGPT) has two stages after SFT: first train a reward model on human preference data, then use reinforcement learning to maximise the learned reward subject to a KL constraint from the reference policy. The optimisation objective is:
 
-$$
-\max_{\pi_\theta} \; \mathbb{E}_{x \sim \mathcal{D}, \, y \sim \pi_\theta} \left[ r_\phi(x, y) \right] - \beta \cdot \mathrm{KL}\!\left[ \pi_\theta(y \mid x) \;\|\; \pi_\mathrm{ref}(y \mid x) \right] \quad (1)
-$$
+![ Equation 1 — KL-Constrained RL Objective ](/images/eq1_kl_objective.png)
 
 This is expensive: it requires sampling from the LM during training, maintaining a separate reward model and critic, and careful hyperparameter tuning of the KL coefficient. The paper's central insight is that this objective has a closed-form optimal solution:
 
-$$
-\pi^*(y \mid x) = \frac{1}{Z(x)} \cdot \pi_\mathrm{ref}(y \mid x) \cdot \exp\!\left( \frac{r(x,y)}{\beta} \right) \quad (2)
-$$
+![ Equation 2 — Closed-Form Optimal Policy ](/images/eq2_optimal_policy.png)
 
 Rearranging this to express the reward in terms of the policy gives:
 
-$$
-r(x, y) = \beta \cdot \log\!\left[ \frac{\pi_\theta(y \mid x)}{\pi_\mathrm{ref}(y \mid x)} \right] + \beta \cdot \log Z(x) \quad (3)
-$$
+![ Equation 3 — Reward Reparameterisation ](/images/eq3_reward_reparam.png)
 
-The key observation is that when this reparameterisation is substituted into the Bradley-Terry preference model, the intractable partition function $Z(x)$ cancels out entirely. This allows the preference probability to be expressed purely in terms of the policy and the reference—no reward model required.
+The key observation is that when this reparameterisation is substituted into the Bradley-Terry preference model, the intractable partition function $Z(x)$ cancels out entirely. This allows the preference probability to be expressed purely in terms of the policy and the reference — no reward model required.
 
 ### 2.2 The DPO loss
 
 Substituting the reparameterised reward into the Bradley-Terry preference model and framing it as a maximum likelihood objective over preference pairs $(x, y_w, y_l)$ yields the DPO loss:
 
-$$
-\mathcal{L}_\mathrm{DPO} = -\mathbb{E}\!\left[ \log \sigma\!\left( \beta \cdot \log\frac{\pi_\theta(y_w \mid x)}{\pi_\mathrm{ref}(y_w \mid x)} - \beta \cdot \log\frac{\pi_\theta(y_l \mid x)}{\pi_\mathrm{ref}(y_l \mid x)} \right) \right] \quad (4)
-$$
+![ Equation 4 — DPO Loss ](/images/eq4_dpo_loss.png)
 
-Where $y_w$ is the chosen (preferred) response, $y_l$ is the rejected (dispreferred) response, and $\beta$ controls how tightly the policy stays near the reference. This is a binary cross-entropy loss—the model learns to assign higher implicit reward to chosen over rejected, with the gradient automatically weighting harder examples more heavily.
+Where $y_w$ is the chosen (preferred) response, $y_l$ is the rejected (dispreferred) response, and $\beta$ controls how tightly the policy stays near the reference. This is a binary cross-entropy loss — the model learns to assign higher implicit reward to chosen over rejected, with the gradient automatically weighting harder examples more heavily.
 
 ### 2.3 What the gradient does
 
-The paper provides an explicit gradient analysis. Increasing the DPO loss parameters $\theta$ increases the log-probability of $y_w$ and decreases the log-probability of $y_l$. Crucially, the weight applied to each example is $\sigma(\hat{r}_\theta(x, y_l) - \hat{r}_\theta(x, y_w))$—proportional to how much the current model incorrectly ranks the rejected response over the chosen one. This dynamic weighting prevents trivial updates on already-solved pairs and concentrates learning on the hardest examples.
+The paper provides an explicit gradient analysis. Increasing the DPO loss parameters $\theta$ increases the log-probability of $y_w$ and decreases the log-probability of $y_l$. Crucially, the weight applied to each example is $\sigma(\hat{r}_\theta(x, y_l) - \hat{r}_\theta(x, y_w))$ — proportional to how much the current model incorrectly ranks the rejected response over the chosen one. This dynamic weighting prevents trivial updates on already-solved pairs and concentrates learning on the hardest examples.
 
 
 ### 2.4 Experimental setup in the paper
