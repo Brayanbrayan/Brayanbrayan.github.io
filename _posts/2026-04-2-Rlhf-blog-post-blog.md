@@ -65,7 +65,7 @@ PPO frames alignment as a reinforcement learning problem. The policy generates r
 
 **The KL-constrained RL objective:**
 
-![KL-constrained RL objective](images/rlhfblogimages/math_ppo_objectique.png)
+![KL-constrained RL objective](/images/rlhfblogimages/math_ppo_objectique.png)
 <!-- INSERT: math_ppo_objective.png -->
 
 **The clipped surrogate loss:**
