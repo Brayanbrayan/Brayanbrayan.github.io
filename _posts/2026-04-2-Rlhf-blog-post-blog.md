@@ -70,12 +70,14 @@ PPO frames alignment as a reinforcement learning problem. The policy generates r
 
 **The clipped surrogate loss:**
 
+![The clipped surrogate loss](/images/rlhfblogimages/math_ppo_loss.png)
 <!-- INSERT: math_ppo_loss.png -->
 
 Where `r_t(θ) = π_θ(aₜ|sₜ) / π_old(aₜ|sₜ)` is the probability ratio and `Â_t` is the advantage estimated by the value head using GAE.
 
 **The shaped reward used at each token position:**
 
+![The shaped reward used at each token position](/images/rlhfblogimages/math_ppo_shaped_reward.png)
 <!-- INSERT: math_ppo_shaped_reward.png -->
 
 ```python
@@ -93,10 +95,12 @@ GRPO eliminates the value function entirely. Instead of estimating a baseline fr
 
 **Group-relative advantage:**
 
+![Group-relative advantage](/images/rlhfblogimages/math_grpo_advantage.png)
 <!-- INSERT: math_grpo_advantage.png -->
 
 **The GRPO loss:**
 
+![The GRPO loss](/images/rlhfblogimages/math_grpo_loss.png)
 <!-- INSERT: math_grpo_loss.png -->
 
 The critical vulnerability: when all `k` responses are near-identical, `std(r) → 0` and all advantages `→ 0`. No gradient flows. This is **group collapse**, and it is GRPO's primary failure mode at small model scale.
@@ -121,18 +125,21 @@ The key insight from Rafailov et al. (NeurIPS 2023) is that the optimal policy u
 
 **Optimal policy form:**
 
+![Optimal policy form](/images/rlhfblogimages/math_dpo_optimal_policy.png)
 <!-- INSERT: math_dpo_optimal_policy.png -->
 
 Rearranging to express reward in terms of the policy:
 
 **Reward reparameterisation:**
 
+![Reward reparameterisation](/images/rlhfblogimages/math_dpo_reward_reparam.png)
 <!-- INSERT: math_dpo_reward_reparam.png -->
 
 Substituting into the Bradley-Terry preference model causes `Z(x)` to cancel, yielding the DPO loss:
 
 **The DPO loss:**
 
+![The DPO loss](/images/rlhfblogimages/math_dpo_loss.png)
 <!-- INSERT: math_dpo_loss.png -->
 
 > The reward model does not appear anywhere in the DPO training loop. It is used only for post-hoc evaluation in `dpo_logger.py` and `eval_dpo.py`. This is the key architectural distinction from PPO and GRPO.
@@ -161,12 +168,14 @@ All four checkpoints were evaluated on the same 16 prompts with the same reward 
 
 ### Per-prompt results
 
+![Per-prompt results](/images/rlhfblogimages/fig1_phase1_per_prompt.png)
 <!-- INSERT: fig1_phase1_per_prompt.png -->
 
 *Fig 1 — Phase 1 per-prompt reward scores across all four methods.*
 
 ### Average reward by algorithm
 
+![Average reward by algorithm](/images/rlhfblogimages/fig2_phase1_averages.png)
 <!-- INSERT: fig2_phase1_averages.png -->
 
 *Fig 2 — Phase 1 average reward. PPO wins at +3.99. GRPO is the only method below the SFT baseline.*
@@ -248,6 +257,7 @@ Each algorithm's Phase 1 failure mode was diagnosed and a targeted multi-paramet
 
 **DPO reward margin:**
 
+![DPO reward margin](/images/rlhfblogimages/math_dpo_margin.png)
 <!-- INSERT: math_dpo_margin.png -->
 
 | Parameter | Phase 1 → Phase 5 | Rationale |
@@ -262,6 +272,7 @@ Each algorithm's Phase 1 failure mode was diagnosed and a targeted multi-paramet
 
 The DPO training logs provide the clearest picture of what the β change achieved.
 
+![ DPO training dynamics](/images/rlhfblogimages/fig3_dpo_training_dynamics.png)
 <!-- INSERT: fig3_dpo_training_dynamics.png -->
 
 *Fig 3 — DPO training dynamics. Top row: Phase 1 (β=0.1). Bottom row: Phase 5 (β=0.3). Left: loss. Right: reward margin.*
@@ -278,6 +289,7 @@ The negative margins in Phase 5 are not failures. They are the loss function doi
 
 The group standard deviation is the critical GRPO diagnostic. When `std → 0`, advantages `→ 0`, and no gradient flows.
 
+![GRPO group collapse](/images/rlhfblogimages/fig4_grpo_group_std.png)
 <!-- INSERT: fig4_grpo_group_std.png -->
 
 *Fig 4 — GRPO group std. Left: Phase 1 per-prompt (k=4). Right: Phase 5 per training step (k=8, temp=1.0). Red dashed = collapse threshold.*
@@ -294,12 +306,14 @@ The terminal output confirms: Phase 5 GRPO group mean rewards show the model suc
 
 ### Per-prompt results
 
+![Phase 5 — Results](/images/rlhfblogimages/fig5_phase5_per_prompt.png)
 <!-- INSERT: fig5_phase5_per_prompt.png -->
 
 *Fig 5 — Phase 5 per-prompt reward scores after hyperparameter tuning.*
 
 ### Before and after averages
 
+![Before and after averages](/images/rlhfblogimages/fig6_phase1_vs_phase5_averages.png)
 <!-- INSERT: fig6_phase1_vs_phase5_averages.png -->
 
 *Fig 6 — Average reward Phase 1 vs Phase 5. Hatched = Phase 1. Solid = Phase 5. Delta annotated.*
@@ -319,6 +333,7 @@ Three algorithms improved. One regressed. GRPO has the largest absolute gain at 
 
 ## 8. Per-prompt delta analysis
 
+![Per-prompt delta analysis](/images/rlhfblogimages/fig7_delta_heatmap.png)
 <!-- INSERT: fig7_delta_heatmap.png -->
 
 *Fig 7 — Delta heatmap (Phase 5 − Phase 1). Green = improvement. Red = regression.*
@@ -335,6 +350,7 @@ Several patterns stand out:
 
 ## 9. The ranking reversal
 
+!The ranking reversal](/images/rlhfblogimages/fig8_ranking_bump_chart.png)
 <!-- INSERT: fig8_ranking_bump_chart.png -->
 
 *Fig 8 — Algorithm ranking Phase 1 → Phase 5. DPO moves from 3rd to 1st. GRPO moves from 4th to 3rd. PPO falls from 1st to 4th.*
