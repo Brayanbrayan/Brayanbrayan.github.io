@@ -1,6 +1,6 @@
 # RLHF from Scratch: A Complete Alignment Study
 
-### SFT · PPO · GRPO · DPO — implementation, evaluation, and hyperparameter sensitivity
+### SFT · PPO · GRPO · DPO implementation, evaluation, and hyperparameter sensitivity
 
 *Personal project · 2026 · PyTorch · tatsu-lab/alpaca · 1M parameter model*
 
@@ -27,7 +27,7 @@
 
 ## 1. Overview
 
-This is the final report of a ten-part project implementing reinforcement learning from human feedback (RLHF) entirely from scratch in PyTorch. Every component — the tokenizer, the language model, the reward model, and all three post-SFT alignment algorithms — was built from first principles without relying on pretrained weights or alignment libraries.
+This is the final report of a ten part project implementing reinforcement learning from human feedback (RLHF) entirely from scratch in PyTorch. Every component the tokenizer, the language model, the reward model, and all three post-SFT alignment algorithms were built from first principles without relying on pretrained weights or alignment libraries.
 
 The project runs two evaluation phases. **Phase 1** establishes baselines by running SFT, PPO, GRPO, and DPO checkpoints through a fixed evaluation suite of 16 prompts scored by a trained reward model. **Phase 5** reruns all four algorithms with targeted hyperparameter changes, motivated by the specific failure modes identified in Phase 1. The result is a complete before-and-after picture of what each algorithm does, what breaks it, and what fixes it.
 
@@ -53,7 +53,7 @@ All four models share the same architecture throughout:
 
 ### 2.1 Supervised Fine-Tuning (SFT) — the baseline
 
-SFT is not an alignment algorithm — it is the starting point for all three. The SFT model is fine-tuned on `tatsu-lab/alpaca` using standard cross-entropy loss over the response tokens only, learning to imitate the distribution of human-written instruction responses.
+SFT is not an alignment algorithm it is the starting point for all three. The SFT model is fine-tuned on `tatsu-lab/alpaca` using standard cross-entropy loss over the response tokens only, learning to imitate the distribution of human-written instruction responses.
 
 The SFT checkpoint serves two roles: it is both the evaluation baseline that all post-SFT methods must beat, and the initialisation point from which PPO, GRPO, and DPO all start.
 
@@ -178,7 +178,7 @@ All four checkpoints were evaluated on the same 16 prompts with the same reward 
 ![Average reward by algorithm](/images/rlhfblogimages/fig2_phase1_averages.png)
 <!-- INSERT: fig2_phase1_averages.png -->
 
-*Fig 2 — Phase 1 average reward. PPO wins at +3.99. GRPO is the only method below the SFT baseline.*
+*Fig 2 Phase 1 average reward. PPO wins at +3.99. GRPO is the only method below the SFT baseline.*
 
 ### Summary table
 
@@ -206,11 +206,11 @@ All four checkpoints were evaluated on the same 16 prompts with the same reward 
 
 ### Phase 1 findings
 
-**PPO** wins Phase 1 at +3.99 but fails on prompts where SFT was already strong. The camping list drops from +7.44 to -1.21. The capital of France scores identically to SFT at -7.10 — the policy learned nothing on that prompt.
+**PPO** wins Phase 1 at +3.99 but fails on prompts where SFT was already strong. The camping list drops from +7.44 to -1.21. The capital of France scores identically to SFT at -7.10 the policy learned nothing on that prompt.
 
 **GRPO** is the only method to regress below SFT (-0.12 average). "What are the three primary colors?" yields -5.97 because all four generated samples collapsed to "Theal" with group std ≈ 0. No gradient flowed on this prompt type.
 
-**DPO** has the highest variance of any method — +7.82 on word embeddings and -7.75 on air pollution in the same evaluation run. Reward margin explosion (reaching 599 by step 150) caused catastrophic forgetting on specific prompt types.
+**DPO** has the highest variance of any method +7.82 on word embeddings and -7.75 on air pollution in the same evaluation run. Reward margin explosion (reaching 599 by step 150) caused catastrophic forgetting on specific prompt types.
 
 > **On reward model reliability:** The capital of France is Paris scores -7.10 under both SFT and PPO. Meanwhile incoherent DPO output scores +4.91. The reward model penalises short, definitive answers regardless of correctness. All Phase 1 rankings must be read with this caveat in mind.
 
@@ -275,13 +275,13 @@ The DPO training logs provide the clearest picture of what the β change achieve
 ![ DPO training dynamics](/images/rlhfblogimages/fig3_dpo_training_dynamics.png)
 <!-- INSERT: fig3_dpo_training_dynamics.png -->
 
-*Fig 3 — DPO training dynamics. Top row: Phase 1 (β=0.1). Bottom row: Phase 5 (β=0.3). Left: loss. Right: reward margin.*
+*Fig 3 DPO training dynamics. Top row: Phase 1 (β=0.1). Bottom row: Phase 5 (β=0.3). Left: loss. Right: reward margin.*
 
 **Phase 1 (β=0.1):** Loss collapses to ~0 by step 30 and stays there. The reward margin grows monotonically, reaching 599 at step 150. The model is overfitting each pair to zero loss with no recovery.
 
-**Phase 5 (β=0.3):** The loss shows genuine variation — several steps near zero, but recoveries at steps 90 (1.44) and 100 (5.60). The margin peaks at 261 rather than 599, and shows negative values at steps 90 and 100, indicating the model occasionally prefers the rejected response — a healthier training signal that triggers correction.
+**Phase 5 (β=0.3):** The loss shows genuine variation several steps near zero, but recoveries at steps 90 (1.44) and 100 (5.60). The margin peaks at 261 rather than 599, and shows negative values at steps 90 and 100, indicating the model occasionally prefers the rejected response a healthier training signal that triggers correction.
 
-The negative margins in Phase 5 are not failures. They are the loss function doing its job — when margin is negative, loss is high, a strong gradient fires, and the policy corrects. With β=0.1, loss reached zero so fast that these corrections never registered.
+The negative margins in Phase 5 are not failures. They are the loss function doing its job when margin is negative, loss is high, a strong gradient fires, and the policy corrects. With β=0.1, loss reached zero so fast that these corrections never registered.
 
 ---
 
@@ -292,13 +292,13 @@ The group standard deviation is the critical GRPO diagnostic. When `std → 0`, 
 ![GRPO group collapse](/images/rlhfblogimages/fig4_grpo_group_std.png)
 <!-- INSERT: fig4_grpo_group_std.png -->
 
-*Fig 4 — GRPO group std. Left: Phase 1 per-prompt (k=4). Right: Phase 5 per training step (k=8, temp=1.0). Red dashed = collapse threshold.*
+*Fig 4 GRPO group std. Left: Phase 1 per-prompt (k=4). Right: Phase 5 per training step (k=8, temp=1.0). Red dashed = collapse threshold.*
 
 Phase 1 had 2 of 16 prompts at exactly std=0 (primary colors, atom structure) and several more near the threshold. These correspond directly to GRPO's worst Phase 1 scores.
 
-Phase 5 shows only one collapse event at step 140 (the France prompt, where the model has a near-deterministic output regardless of k). At every other step, std > 0.5 — useful gradient signal was available throughout training.
+Phase 5 shows only one collapse event at step 140 (the France prompt, where the model has a near-deterministic output regardless of k). At every other step, std > 0.5 useful gradient signal was available throughout training.
 
-The terminal output confirms: Phase 5 GRPO group mean rewards show the model successfully learning — mean_r of 5.718 at step 40, 6.419 at step 120, 5.760 at step 200 — versus Phase 1 where many groups were stuck near the group mean due to collapse.
+The terminal output confirms: Phase 5 GRPO group mean rewards show the model successfully learning mean_r of 5.718 at step 40, 6.419 at step 120, 5.760 at step 200 versus Phase 1 where many groups were stuck near the group mean due to collapse.
 
 ---
 
@@ -309,14 +309,14 @@ The terminal output confirms: Phase 5 GRPO group mean rewards show the model suc
 ![Phase 5 — Results](/images/rlhfblogimages/fig5_phase5_per_prompt.png)
 <!-- INSERT: fig5_phase5_per_prompt.png -->
 
-*Fig 5 — Phase 5 per-prompt reward scores after hyperparameter tuning.*
+*Fig 5 Phase 5 per-prompt reward scores after hyperparameter tuning.*
 
 ### Before and after averages
 
 ![Before and after averages](/images/rlhfblogimages/fig6_phase1_vs_phase5_averages.png)
 <!-- INSERT: fig6_phase1_vs_phase5_averages.png -->
 
-*Fig 6 — Average reward Phase 1 vs Phase 5. Hatched = Phase 1. Solid = Phase 5. Delta annotated.*
+*Fig 6 Average reward Phase 1 vs Phase 5. Hatched = Phase 1. Solid = Phase 5. Delta annotated.*
 
 ### Summary
 
@@ -340,10 +340,10 @@ Three algorithms improved. One regressed. GRPO has the largest absolute gain at 
 
 Several patterns stand out:
 
-- The **capital of France row** is all red or zero — this is a structural reward model failure. The correct answer ("Paris") is penalised by the RM regardless of which algorithm generates it. No hyperparameter change can fix this.
-- The **classify oak/copper/elephant row** shows near-zero deltas — SFT already scores perfectly here (+7.01) and all methods converge to the same output regardless of configuration.
+- The **capital of France row** is all red or zero this is a structural reward model failure. The correct answer ("Paris") is penalised by the RM regardless of which algorithm generates it. No hyperparameter change can fix this.
+- The **classify oak/copper/elephant row** shows near-zero deltas SFT already scores perfectly here (+7.01) and all methods converge to the same output regardless of configuration.
 - **GRPO's improvements** are concentrated on structured list tasks (staying healthy: +8.00, camping list: +11.57) where a more diverse group correctly identifies higher-quality completions.
-- **DPO's improvements** are most notable on knowledge retrieval (atom structure: +13.09 — Phase 1 was -6.63, Phase 5 is +6.46) where stronger β prevented the drift that destroyed these representations.
+- **DPO's improvements** are most notable on knowledge retrieval (atom structure: +13.09 Phase 1 was -6.63, Phase 5 is +6.46) where stronger β prevented the drift that destroyed these representations.
 - **PPO's regression** is clearest on tasks where SFT already had good representations (4/16 fraction: -7.07, word embeddings: -4.31) where `kl_coef=0.1` over-constrained the policy in the opposite direction.
 
 ---
@@ -353,7 +353,7 @@ Several patterns stand out:
 !The ranking reversal](/images/rlhfblogimages/fig8_ranking_bump_chart.png)
 <!-- INSERT: fig8_ranking_bump_chart.png -->
 
-*Fig 8 — Algorithm ranking Phase 1 → Phase 5. DPO moves from 3rd to 1st. GRPO moves from 4th to 3rd. PPO falls from 1st to 4th.*
+*Fig 8 Algorithm ranking Phase 1 → Phase 5. DPO moves from 3rd to 1st. GRPO moves from 4th to 3rd. PPO falls from 1st to 4th.*
 
 | Rank | Phase 1 | Avg | Rank | Phase 5 | Avg |
 |---|---|---|---|---|---|
@@ -366,7 +366,7 @@ The ranking completely reshuffled. The Phase 1 winner (PPO) is the Phase 5 loser
 
 This outcome directly demonstrates that Phase 1 results were as much about **hyperparameter sensitivity** as about algorithmic quality. PPO with `kl_coef=0.01` performs differently from PPO with `kl_coef=0.1`. GRPO with `k=4` performs differently from GRPO with `k=8`. The algorithm identity alone is not sufficient to predict ranking.
 
-> **Key takeaway for practitioners:** At 1M parameter scale — PPO is most sensitive to `kl_coef`, GRPO is most sensitive to group size and generation temperature (group collapse is a binary failure mode, not gradual), and DPO is most sensitive to `beta`. All three are also sensitive to eval temperature: the SFT +1.12 gain from `temp=0.7` to `temp=0.3` with **no retraining** illustrates how much evaluation protocol matters independently of training.
+> **Key takeaway for practitioners:** At 1M parameter scale PPO is most sensitive to `kl_coef`, GRPO is most sensitive to group size and generation temperature (group collapse is a binary failure mode, not gradual), and DPO is most sensitive to `beta`. All three are also sensitive to eval temperature: the SFT +1.12 gain from `temp=0.7` to `temp=0.3` with **no retraining** illustrates how much evaluation protocol matters independently of training.
 
 ---
 
@@ -378,7 +378,7 @@ This outcome directly demonstrates that Phase 1 results were as much about **hyp
 
 - **PPO** is the most robust to suboptimal hyperparameters in Phase 1 but the most vulnerable to over-correction in Phase 5. `kl_coef=0.01` was too weak; `kl_coef=0.1` was too strong. The optimal value lies between them.
 
-- **The reward model is the binding constraint** on evaluation quality. Multiple results — including "The capital of France is Paris" scoring -7.10 — reveal that the RM has learned surface patterns that do not correlate with factual correctness. All rankings here are relative to the trained RM, not human preference.
+- **The reward model is the binding constraint** on evaluation quality. Multiple results — including "The capital of France is Paris" scoring -7.10 reveal that the RM has learned surface patterns that do not correlate with factual correctness. All rankings here are relative to the trained RM, not human preference.
 
 - **Evaluation sampling matters independently of training.** The SFT model improved by +1.12 with zero retraining just by changing from `temperature=0.7` to `temperature=0.3`. Phase 1 underestimated SFT's capabilities and all post-SFT deltas should be read with this baseline correction in mind.
 
