@@ -1,6 +1,7 @@
-# RLHF from Scratch: A Complete Alignment Study
-
-### SFT · PPO · GRPO · DPO implementation, evaluation, and hyperparameter sensitivity
+---
+title: "RLHF from Scratch: A Complete Alignment Study"
+description: "SFT · PPO · GRPO · DPO implementation, evaluation, and hyperparameter sensitivity"
+---
 
 *Personal project · 2026 · PyTorch · tatsu-lab/alpaca · 1M parameter model*
 
