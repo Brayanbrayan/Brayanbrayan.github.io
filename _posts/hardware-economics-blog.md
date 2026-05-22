@@ -120,12 +120,12 @@ The benefit is **memory capacity**: instead of needing the entire model on one r
 
 Bubbles emerge because the pipeline stages are not always busy simultaneously. At the start of a batch, racks handling later layers are idle waiting for activations to arrive. At the end of a batch, early-layer racks go idle while the backward pass finishes at the end of the pipeline.
 
-In inference, this is solved trivially — you just start the next batch as soon as the first batch passes through the first stage. There is no real cost.
+In inference, this is solved trivially you just start the next batch as soon as the first batch passes through the first stage. There is no real cost.
 
 In training, it is harder. You cannot just overlap batches, because you need to consolidate gradients and update the weights before processing the next batch. Various techniques (zero bubble, 1F1B interleaving) try to mitigate this, but it remains a real efficiency cost.
 
 ![Pipeline parallelism bubble diagram showing idle time across 4 racks during training](/images/ecom/pipeline_parallelism_bubble.svg)
-*Figure 3: Pipeline parallelism during training. Batches flow diagonally through pipeline stages. The gray hatched regions at the start and end of each batch are the "bubble" — idle time where racks are waiting. This cannot be eliminated in training without techniques like zero bubble or 1F1B interleaving.*
+*Figure 3: Pipeline parallelism during training. Batches flow diagonally through pipeline stages. The gray hatched regions at the start and end of each batch are the "bubble" idle time where racks are waiting. This cannot be eliminated in training without techniques like zero bubble or 1F1B interleaving.*
 
 ### Why pipelining does not help with KV cache
 
@@ -262,7 +262,7 @@ output_y = y + f(x)
 To invert: recover x directly, then recover y = output_y - f(output_x)
 ```
 
-Applied to a transformer layer, this makes the entire network invertible. The benefit for training: because you can regenerate any activation by running the network forward from the input, you do not need to store intermediate activations during the forward pass. You recompute them on demand during the backward pass, trading compute for memory — the inverse of what the KV cache does.
+Applied to a transformer layer, this makes the entire network invertible. The benefit for training: because you can regenerate any activation by running the network forward from the input, you do not need to store intermediate activations during the forward pass. You recompute them on demand during the backward pass, trading compute for memory the inverse of what the KV cache does.
 
 ---
 
