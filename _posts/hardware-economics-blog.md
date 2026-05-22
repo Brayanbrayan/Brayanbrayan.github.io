@@ -50,7 +50,7 @@ The weight fetch in t_mem does not depend on batch size. You load the weights on
 
 At very small batch sizes, Reiner notes that the cost can be literally a thousand times worse than at an optimally batched workload.
 
-![Cost per token vs batch size — weight fetch hyperbola flattening into a compute floor](/images/ecom/cost-vs-batch.png)
+![Cost per token vs batch size — weight fetch hyperbola flattening into a compute floor](/images/ecom/cost_vs_batch_size.svg)
 *Figure 1: Cost per token vs batch size. The weight fetch cost is a hyperbola that falls as batch grows. The KV cache cost is roughly flat. The compute floor sets the lower bound. Total cost is the maximum of all three.*
 
 ### The optimal batch size formula
@@ -103,7 +103,7 @@ This makes **one rack a natural boundary** for an MoE layer. For DeepSeek V3 wit
 
 Nvidia has been expanding scale-up domain sizes precisely to enable larger MoE layers without rack-crossing penalties: Hopper was 8 GPUs, Blackwell is 72, Rubin will be ~500+. Google's TPU pods have had large scale-up domains for longer, which Reiner suggests is part of why Gemini has been able to deploy high-sparsity MoE models effectively.
 
-![GPU rack layout showing NVLink within rack vs slow scale-out between racks](/images/ecom/rack-layout.png)
+![GPU rack layout showing NVLink within rack vs slow scale-out between racks](/images/ecom/moe_rack_layout.svg)
 *Figure 2: Within a rack, NVLink gives full all-to-all connectivity — a perfect fit for MoE routing. Crossing to a second rack forces traffic through the scale-out network, which is ~8× slower. One rack is therefore a natural boundary for an MoE layer.*
 
 ---
@@ -124,7 +124,7 @@ In inference, this is solved trivially — you just start the next batch as soon
 
 In training, it is harder. You cannot just overlap batches, because you need to consolidate gradients and update the weights before processing the next batch. Various techniques (zero bubble, 1F1B interleaving) try to mitigate this, but it remains a real efficiency cost.
 
-![Pipeline parallelism bubble diagram showing idle time across 4 racks during training](/images/ecom/pipeline-bubble.png)
+![Pipeline parallelism bubble diagram showing idle time across 4 racks during training](/images/ecom/pipeline_parallelism_bubble.svg)
 *Figure 3: Pipeline parallelism during training. Batches flow diagonally through pipeline stages. The gray hatched regions at the start and end of each batch are the "bubble" — idle time where racks are waiting. This cannot be eliminated in training without techniques like zero bubble or 1F1B interleaving.*
 
 ### Why pipelining does not help with KV cache
@@ -167,7 +167,7 @@ RL is 2–6× because: 2 if you only do a forward pass on rollouts and do not tr
 
 Inference is 2× (forward only), also with a decode efficiency penalty.
 
-![Bar chart showing three roughly equal compute cost buckets: pretraining, RL, and inference](/images/ecom/compute-split.png)
+![Bar chart showing three roughly equal compute cost buckets: pretraining, RL, and inference](/images/ecom/compute_cost_breakdown.svg)
 *Figure 4: At the optimum, pretraining, RL, and inference costs are roughly equal. Each bucket corresponds to ~200T tokens for a frontier model. That is ~100× the Chinchilla-optimal token count.*
 
 ### The equalization heuristic
@@ -202,7 +202,7 @@ Gemini charges ~50% more for tokens above 200K context. Here is what that tells 
 - Below 200K: **compute-bound**. Marginal cost per token is flat as context grows.
 - Above 200K: **memory-bandwidth-bound**. KV cache fetch time overtakes compute time, and marginal cost rises linearly with context length.
 
-![Line graph showing cost per token vs context length with a kink at 200K tokens](/images/ecom/context-cost.png)
+![Line graph showing cost per token vs context length with a kink at 200K tokens](/images/ecom/cost_vs_context_length.svg)
 *Figure 5: Cost per token is flat up to ~200K tokens (compute-bound), then rises linearly (memory-bandwidth-bound). The kink in Gemini's pricing directly reveals this crossover point. Above 200K, you are paying for KV cache bandwidth, not compute.*
 
 The crossover is where t_compute = t_KV_fetch. Setting them equal:
