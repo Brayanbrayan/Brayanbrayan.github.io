@@ -1,10 +1,10 @@
-# What Two Hours at a Blackboard Taught Me About AI Hardware Economics
+# AI Hardware Economics
 
 *Based on the Dwarkesh Patel / Reiner Pope blackboard session — [watch here](https://www.youtube.com/watch?v=xmkSf5IS-zw)*
 
 ---
 
-I spend most of my time thinking about what happens inside models — transformer architecture, pretraining, RLHF, DPO. I thought I had a reasonable grasp on the compute side of things. Then I watched Dwarkesh Patel and Reiner Pope spend two hours at a blackboard going through the actual hardware economics of training and serving LLMs, and realised I had been missing an entire layer of how this all works.
+I spend the majority of my time contemplating model architecture, pretraining, reinforcement, and inference. I believed I understood the computational aspect of things fairly well. After seeing Dwarkesh Patel and Reiner Pope go over the real hardware economics of teaching and servicing LLMs for two hours at a chalkboard, I realized that this was also really intriguing and appreciated how it was all done.
 
 This post is my attempt to write up what I learned properly. All of the analysis and numbers come from that session. I'll go section by section.
 
@@ -14,7 +14,7 @@ This post is my attempt to write up what I learned properly. All of the analysis
 
 Reiner opens by introducing two quantities that govern the time cost of any forward pass through a transformer:
 
-**t_compute** — the time to do all the matrix multiplications over the active parameters:
+**t_compute** the time to do all the matrix multiplications over the active parameters:
 
 ```
 t_compute = (B × N_active) / FLOPs
@@ -22,7 +22,7 @@ t_compute = (B × N_active) / FLOPs
 
 where B is batch size, N_active is active parameters, and FLOPs is the hardware's compute throughput.
 
-**t_mem** — the time to fetch weights and KV cache from memory:
+**t_mem** the time to fetch weights and KV cache from memory:
 
 ```
 t_mem = (N_total + B × len_ctx × KV_bytes_per_token) / mem_bw
@@ -38,7 +38,7 @@ This is the roofline model. It will not perfectly predict the time, but it gives
 
 ---
 
-## 2. Batch size, latency, and cost — the full picture
+## 2. Batch size, latency, and cost
 
 ### Why batch size matters so much
 
@@ -50,7 +50,7 @@ The weight fetch in t_mem does not depend on batch size. You load the weights on
 
 At very small batch sizes, Reiner notes that the cost can be literally a thousand times worse than at an optimally batched workload.
 
-![Cost per token vs batch size — weight fetch hyperbola flattening into a compute floor](/images/ecom/cost_vs_batch_size.svg)
+![Cost per token vs batch size weight fetch hyperbola flattening into a compute floor](/images/ecom/cost_vs_batch_size.svg)
 *Figure 1: Cost per token vs batch size. The weight fetch cost is a hyperbola that falls as batch grows. The KV cache cost is roughly flat. The compute floor sets the lower bound. Total cost is the maximum of all three.*
 
 ### The optimal batch size formula
@@ -79,7 +79,7 @@ That is the minimum batch size to be compute-bound rather than bandwidth-bound. 
 
 ### The train station metaphor
 
-A useful way to think about scheduling: every ~20ms, a "train" departs carrying a batch of sequences through one forward pass, producing one new token per sequence. New requests board when they arrive. If the train is full they wait for the next one. Worst-case queuing latency is therefore 40ms — one missed train plus one full forward pass.
+A useful way to think about scheduling: every ~20ms, a "train" departs carrying a batch of sequences through one forward pass, producing one new token per sequence. New requests board when they arrive. If the train is full they wait for the next one. Worst-case queuing latency is therefore 40ms one missed train plus one full forward pass.
 
 The 20ms figure comes from the HBM drain time: memory capacity divided by memory bandwidth. On Nvidia Rubin, that is 288 GB / 20 TB/s ≈ 15ms. Running trains faster than this is physically impossible because you cannot read all the weights from HBM in less time than bandwidth allows. Running trains slower just wastes FLOPs.
 
@@ -89,7 +89,7 @@ The 20ms figure comes from the HBM drain time: memory capacity divided by memory
 
 ### The all-to-all problem
 
-In a Mixture-of-Experts layer, a router decides which experts each token goes to — typically a small fraction, like 6 out of 256 in DeepSeek. Each expert is a standard MLP. In expert parallelism, different experts live on different GPUs.
+In a Mixture-of-Experts layer, a router decides which experts each token goes to typically a small fraction, like 6 out of 256 in DeepSeek. Each expert is a standard MLP. In expert parallelism, different experts live on different GPUs.
 
 The communication pattern this creates is all-to-all: any GPU's tokens may route to any other GPU's experts, depending on the routing decision. This means every GPU needs to be able to talk to every other GPU at full bandwidth.
 
@@ -104,7 +104,7 @@ This makes **one rack a natural boundary** for an MoE layer. For DeepSeek V3 wit
 Nvidia has been expanding scale-up domain sizes precisely to enable larger MoE layers without rack-crossing penalties: Hopper was 8 GPUs, Blackwell is 72, Rubin will be ~500+. Google's TPU pods have had large scale-up domains for longer, which Reiner suggests is part of why Gemini has been able to deploy high-sparsity MoE models effectively.
 
 ![GPU rack layout showing NVLink within rack vs slow scale-out between racks](/images/ecom/moe_rack_layout.svg)
-*Figure 2: Within a rack, NVLink gives full all-to-all connectivity — a perfect fit for MoE routing. Crossing to a second rack forces traffic through the scale-out network, which is ~8× slower. One rack is therefore a natural boundary for an MoE layer.*
+*Figure 2: Within a rack, NVLink gives full all-to-all connectivity a perfect fit for MoE routing. Crossing to a second rack forces traffic through the scale-out network, which is ~8× slower. One rack is therefore a natural boundary for an MoE layer.*
 
 ---
 
@@ -147,8 +147,8 @@ Beyond the efficiency costs, pipeline parallelism imposes hard architectural con
 
 The 6ND formula for pretraining FLOPs is one of the most referenced numbers in ML, and almost nobody explains where it comes from:
 
-- **2ND**: forward pass — 2 FLOPs per parameter per token (one multiply, one add)
-- **4ND**: backward pass — 2× the forward pass, because you compute gradients with respect to both input matrices
+- **2ND**: forward pass 2 FLOPs per parameter per token (one multiply, one add)
+- **4ND**: backward pass 2× the forward pass, because you compute gradients with respect to both input matrices
 - **Total: 6ND**
 
 ### Total compute across pretraining, RL, and inference
@@ -228,17 +228,17 @@ Output tokens (decode) are typically **3–5× more expensive** than input token
 - During **prefill**, you process the whole sequence in parallel. The weight fetch is amortized across many tokens of compute. MFU is high.
 - During **decode**, you load all the weights just to produce one new token. The weight fetch cost is not amortized at all. MFU drops to roughly ⅕ of prefill.
 
-This is why Claude and Codex offer "Fast Mode" at 6× the price for 2.5× the speed — you are paying for a smaller, less amortized batch.
+This is why Claude and Codex offer "Fast Mode" at 6× the price for 2.5× the speed you are paying for a smaller, less amortized batch.
 
 ### Cache pricing and memory tiers
 
 Cached tokens (cache hits) are ~10× cheaper than fresh input tokens because loading KVs from memory is much cheaper than recomputing them from token IDs. API providers offer different cache durations (e.g. 5 minutes vs 1 hour) at different prices, which you can use to infer which memory tier is being used:
 
-The drain time of a memory tier — capacity divided by bandwidth — determines how long it makes sense to hold something there before it becomes cheaper to evict and recompute. HBM drain time is ~20ms (too short for caching). DDR is on the order of seconds. Flash is on the order of minutes. Spinning disk is on the order of hours. A 5-minute cache tier is consistent with flash; a 1-hour tier is consistent with spinning disk.
+The drain time of a memory tier capacity divided by bandwidth determines how long it makes sense to hold something there before it becomes cheaper to evict and recompute. HBM drain time is ~20ms (too short for caching). DDR is on the order of seconds. Flash is on the order of minutes. Spinning disk is on the order of hours. A 5-minute cache tier is consistent with flash; a 1-hour tier is consistent with spinning disk.
 
 ### The long context wall
 
-The fundamental barrier to very long context (100M+ tokens) is **memory bandwidth**, not compute. The KV cache fetch time scales linearly with context length, and HBM bandwidth is not improving fast enough to keep pace. Sparse attention helps — it can give you a square root improvement — but not infinitely, because going too sparse hurts quality.
+The fundamental barrier to very long context (100M+ tokens) is **memory bandwidth**, not compute. The KV cache fetch time scales linearly with context length, and HBM bandwidth is not improving fast enough to keep pace. Sparse attention helps it can give you a square root improvement but not infinitely, because going too sparse hurts quality.
 
 Reiner notes that context lengths have been hovering around 100–200K for the past couple of years. That plateau is not a coincidence. It reflects where the memory bandwidth cost becomes prohibitive. There is no clean path to solving this on current hardware.
 
@@ -250,7 +250,7 @@ The session closes with a fascinating detour into the structural similarities be
 
 Both need every output to depend on every input in complicated, hard-to-invert ways. Cryptographic protocols achieve this through mixing and scrambling across many rounds. Neural networks do it through layers of matrix multiplications and nonlinearities. The architectures have converged toward similar high-level structures independently.
 
-The key difference: cryptographic protocols are trying to **destroy structure** — take something with regularity and make it indistinguishable from random. Neural networks are trying to **extract structure** — take something that looks random and find the underlying pattern. Same mechanism, opposite goal.
+The key difference: cryptographic protocols are trying to **destroy structure** take something with regularity and make it indistinguishable from random. Neural networks are trying to **extract structure** take something that looks random and find the underlying pattern. Same mechanism, opposite goal.
 
 One direct import from cryptography into deep learning is the **Feistel network**, introduced in the 2017 RevNets paper. A Feistel construction makes any function invertible by maintaining two streams and alternating which one gets transformed:
 
@@ -268,6 +268,6 @@ Applied to a transformer layer, this makes the entire network invertible. The be
 
 ## Final thought
 
-The most productive reframe from this session: **a transformer is not just a mathematical object, it is a physical system running on hardware with bandwidth constraints, capacity limits, and thermal envelopes.** The architecture choices, the sparsity decisions, the context length limits, the API pricing tiers — they all follow from the physics of moving bytes around. Once you see it that way, a lot of things that seemed arbitrary start to look inevitable.
+The most productive reframe from this session: **a transformer is not just a mathematical object, it is a physical system running on hardware with bandwidth constraints, capacity limits, and thermal envelopes.** The architecture choices, the sparsity decisions, the context length limits, the API pricing tiers they all follow from the physics of moving bytes around. Once you see it that way, a lot of things that seemed arbitrary start to look inevitable.
 
-The video is here: https://www.youtube.com/watch?v=xmkSf5IS-zw — highly recommend watching with a pen and paper.
+The video is here: https://www.youtube.com/watch?v=xmkSf5IS-zw highly recommend watching with a pen and paper.
