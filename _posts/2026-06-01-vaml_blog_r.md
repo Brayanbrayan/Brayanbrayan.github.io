@@ -197,11 +197,6 @@ The system architecture looks like this:
 ![system architecture](/images/vaml_architecture.svg)
 
 
-```
-(/images/vaml_architecture.svg)
-
-```
-
 ### 4.2 The ValueBackbone
 
 The 12-layer value network downsamples the 36 collected latents evenly, sampling every third layer:
