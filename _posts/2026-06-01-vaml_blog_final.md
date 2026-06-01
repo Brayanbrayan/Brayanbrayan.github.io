@@ -53,13 +53,13 @@ Before engaging with the architecture, precise definitions matter here, because 
 
 The value function is a theoretical object. It is the expected discounted return from state ![s under policy pi](/images/vaml/eq_s_pi.png):
 
-![Value function definition](/images/vaml/eq_value_function.png)
+![Value function definition](/images/vaml/value_function.png)
 
-This is the quantity we want to approximate. It is not a neural network; it is the ground truth we are trying to learn. ![gamma in 0,1](/images/vaml/eq_gamma_range.png) is the discount factor controlling how much future rewards are weighted relative to immediate ones.
+This is the quantity we want to approximate. It is not a neural network; it is the ground truth we are trying to learn. ![gamma in 0,1](/images/vaml/gamma_range.png) is the discount factor controlling how much future rewards are weighted relative to immediate ones.
 
 ### 2.2 The Value Network vs. The Value Head
 
-A **Value Network** is a dedicated neural network whose entire purpose is to approximate ![V-pi(s)](/images/vaml/eq_vpis.png). In VAML, this is a 12-layer transformer, a substantial standalone model with its own parameters.
+A **Value Network** is a dedicated neural network whose entire purpose is to approximate ![V-pi(s)](/images/vaml/vpis.png). In VAML, this is a 12-layer transformer, a substantial standalone model with its own parameters.
 
 A **Value Head** is a small linear projection bolted onto an existing model's final hidden state. It is cheap, ubiquitous, and the conventional implementation in RLHF:
 
@@ -96,11 +96,11 @@ Turn 3: Guess "SHORT" → [🟩][🟩][🟩][🟩][🟩]  ✓ WIN
 
 If the final reward is +10, which of the three guesses was responsible? CRANE eliminated several letters. SHOUT locked four positions. SHORT just finished the job. Without a critic, all three receive identical credit signals.
 
-With a critic that estimates ![V(s)](/images/vaml/eq_value_function.png) at each turn, we can compute **advantages**: how much better each action was than expected:
+With a critic that estimates ![V(s)](/images/vaml/value_function.png) at each turn, we can compute **advantages**: how much better each action was than expected:
 
-![Advantage CRANE](/images/vaml/eq_advantage_crane.png)
-![Advantage SHOUT](/images/vaml/eq_advantage_shout.png)
-![Advantage SHORT](/images/vaml/eq_advantage_short.png)
+![Advantage CRANE](/images/vaml/advantage_crane.png)
+![Advantage SHOUT](/images/vaml/advantage_shout.png)
+![Advantage SHORT](/images/vaml/advantage_short.png)
 
 These advantages tell the policy optimizer exactly how much to reinforce each action, and in which direction.
 
@@ -250,7 +250,7 @@ def __call__(self, latents, positions, *, rng_key):
 
 Each value layer receives the corresponding Qwen3 latent via a gated injection:
 
-![ValueNetEncode gated injection](/images/vaml/eq_valuenet_encode.png)
+![ValueNetEncode gated injection](/images/vaml/valuenet_encode.png)
 
 The `ValueNetEncode` module uses a gated activation (SiLU) to selectively pass features from the Qwen3 representation into the value network's processing stream.
 
@@ -284,7 +284,7 @@ The base model's weights are updated only by the policy gradient (through LoRA);
 
 Storing 37 intermediate tensors per forward pass is expensive. For a batch of 8 sequences with sequence length 256 and hidden dimension 2560:
 
-![Memory calculation for latent collection](/images/vaml/eq_memory_calc.png)
+![Memory calculation for latent collection](/images/vaml/memory_calc.png)
 
 This is just for the latent collection, before optimizer state. `jax.checkpoint()` mitigates this with a memory-compute tradeoff: during the forward pass, only layer *outputs* are stored; internal activations (QKV projections, attention scores, FFN intermediates) are discarded and recomputed on-demand during backpropagation.
 
@@ -306,11 +306,11 @@ Rather than predicting a scalar ![V(s) in R](/images/vaml/eq_vs_real.png), the f
 
 The expected value is the weighted sum over bins:
 
-![HL-Gauss expected value over bins](/images/vaml/eq_hlgauss_expected.png)
+![HL-Gauss expected value over bins](/images/vaml/hlgauss_expected.png)
 
 The training loss is KL divergence between the predicted distribution and a Gaussian centered on the GAE return target:
 
-![HL-Gauss training loss — KL divergence](/images/vaml/eq_hlgauss_loss.png)
+![HL-Gauss training loss — KL divergence](/images/vaml/hlgauss_loss.png)
 
 The distributional output is motivated by the step-function finding described later. Before receiving feedback, there is genuine uncertainty about future reward. A scalar value collapses this uncertainty to a point estimate; a distribution preserves it. The width of the predicted distribution encodes the value network's confidence: narrow when the situation is clear, wide when it is not.
 
@@ -336,12 +336,12 @@ The value network trains at ![10x the policy learning rate](/images/vaml/eq_10x_
 
 The 3.7B-parameter Qwen3 base is not directly fine-tuned. Instead, Low-Rank Adaptation [5] inserts small trainable matrices into the attention and MLP layers:
 
-![LoRA low-rank update rule](/images/vaml/eq_lora_update.png)
+![LoRA low-rank update rule](/images/vaml/lora_update.png)
 
 With rank ![r=32](/images/vaml/eq_r32.png) and hidden dimension ![d=2560](/images/vaml/eq_d2560.png):
 
-![LoRA parameters per layer](/images/vaml/eq_lora_params_layer.png)
-![LoRA total trainable parameters](/images/vaml/eq_lora_params_total.png)
+![LoRA parameters per layer](/images/vaml/lora_params_layer.png)
+![LoRA total trainable parameters](/images/vaml/lora_params_total.png)
 
 This is approximately 0.6% of the full model, a 160× reduction in trainable parameters, while keeping optimizer state requirements at around 200 MB instead of 30 GB.
 
@@ -436,7 +436,7 @@ The model generates the guess tokens (policy mask = True). The environment gener
 
 VAML uses Generalized Advantage Estimation [6] to compute advantages from the value network's predictions. GAE introduces a bias-variance tradeoff parameter ![lambda](/images/vaml/eq_lambda_param.png):
 
-![Generalized Advantage Estimation definition](/images/vaml/eq_gae.png)
+![Generalized Advantage Estimation definition](/images/vaml/gae.png)
 
 With ![lambda=0](/images/vaml/eq_lambda_0.png): pure TD(0), high bias, low variance. With ![lambda=1](/images/vaml/eq_lambda_1.png): Monte Carlo returns, low bias, high variance. The config uses `gae_lambda = 1.0`, effectively Monte Carlo returns, which makes sense given the sparse reward structure (few intermediate signals to bootstrap from).
 
@@ -478,21 +478,21 @@ This prevents the GAE estimator from "looking backward" across turns. Without it
 
 The complete PPO loss combines three terms:
 
-![Full PPO objective](/images/vaml/eq_ppo_full.png)
+![Full PPO objective](/images/vaml/ppo_full.png)
 
 **Clipped policy loss** with asymmetric bounds (![epsilon bounds](/images/vaml/eq_eps_bounds.png)):
 
-![PPO clipped policy loss](/images/vaml/eq_ppo_policy.png)
+![PPO clipped policy loss](/images/vaml/ppo_policy.png)
 
 where ![probability ratio rho](/images/vaml/eq_rho_def.png) is the probability ratio.
 
 **Distributional value loss:**
 
-![Distributional value loss](/images/vaml/eq_ppo_value_loss.png)
+![Distributional value loss](/images/vaml/ppo_value_loss.png)
 
 **Entropy regularization** to maintain exploration:
 
-![Entropy regularization](/images/vaml/eq_entropy.png)
+![Entropy regularization](/images/vaml/entropy.png)
 
 ---
 
@@ -559,7 +559,7 @@ The experimental question is direct: does VAML's 12-layer critic provide benefit
 
 GRPO's insight is that you can estimate advantages without a critic if you generate multiple rollouts for the same prompt and normalize returns within each group:
 
-![GRPO group-relative advantage normalization](/images/vaml/eq_grpo_advantage.png)
+![GRPO group-relative advantage normalization](/images/vaml/grpo_advantage.png)
 
 For this to produce meaningful comparisons in Wordle, all rollouts within group ![g](/images/vaml/eq_group_g.png) must play the *same* secret word. Otherwise, the variance in returns reflects word difficulty rather than policy quality, and the normalization becomes meaningless.
 
@@ -652,7 +652,7 @@ No dynamic indexing. No data-dependent branches. XLA compiles this once and reus
 
 The full objective combines the PPO clipped surrogate with a stronger KL penalty and entropy bonus:
 
-![GRPO full loss function](/images/vaml/eq_grpo_loss.png)
+![GRPO full loss function](/images/vaml/grpo_loss.png)
 
 with ![beta_KL=0.05](/images/vaml/eq_beta_kl.png) and ![beta_ent=0.01](/images/vaml/eq_beta_ent.png). The stronger KL penalty compensates for the absent value baseline: without a critic to reduce advantage variance, the policy is more prone to making large, potentially destabilizing updates.
 
