@@ -1,5 +1,5 @@
 title: Brayan's Blog
-description: AI/ML Research, Engineering 
+description: AI/ML Research, Engineering
 theme: minima
 author:
   name: Brayan
@@ -8,3 +8,9 @@ minima:
   skin: classic
   social_links:
     github: Brayanbrayan
+
+markdown: kramdown
+kramdown:
+  math_engine: null
+  input: GFM
+  syntax_highlighter: rouge
