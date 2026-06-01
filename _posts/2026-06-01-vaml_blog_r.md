@@ -53,7 +53,7 @@ Before engaging with the architecture, precise definitions matter here, because 
 
 The value function is a theoretical object. It is the expected discounted return from state $s$ under policy $\pi$:
 
-V^{\pi}(s) = \mathbb{E}_{\pi} \left[ \sum_{k=0}^{\infty} \gamma^{k} r_{t+k+1} \;\middle|\; S_t = s \right]
+![Value function definition](/images/vaml/value_function.png)
 
 This is the quantity we want to approximate. It is not a neural network; it is the ground truth we are trying to learn. $\gamma \in [0, 1]$ is the discount factor controlling how much future rewards are weighted relative to immediate ones.
 
