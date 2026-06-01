@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" viewBox="0 0 680 780" style="font-family: system-ui, -apple-system, sans-serif; background: #ffffff;">
+  <title>VAML system architecture</title>
+  <desc>Two-path architecture: Qwen3-4B base model feeds token logits to the policy head and latent representations to the value network, which outputs a distributional value estimate via HL-Gauss.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <!-- Input tokens -->
+  <rect x="240" y="20" width="200" height="44" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+  <text x="340" y="46" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#2C2C2A">Input tokens</text>
+
+  <!-- Arrow: input → qwen3 -->
+  <line x1="340" y1="64" x2="340" y2="100" stroke="#888780" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <!-- Qwen3 base model container -->
+  <rect x="60" y="102" width="560" height="190" rx="12" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <text x="340" y="124" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#26215C">Qwen3-4B base model</text>
+  <text x="340" y="143" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3C3489">36 transformer layers · hidden dim 2560 · frozen weights + LoRA</text>
+
+  <!-- Early layers box -->
+  <rect x="80" y="158" width="100" height="44" rx="6" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+  <text x="130" y="174" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" fill="#0C447C">L1–L9</text>
+  <text x="130" y="192" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#185FA5">syntax</text>
+
+  <!-- Mid layers box -->
+  <rect x="196" y="158" width="108" height="44" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text x="250" y="174" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" fill="#085041">L10–L20</text>
+  <text x="250" y="192" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#0F6E56">reasoning</text>
+
+  <!-- Final layers box -->
+  <rect x="320" y="158" width="108" height="44" rx="6" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+  <text x="374" y="174" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" fill="#0C447C">L21–L36</text>
+  <text x="374" y="192" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#185FA5">token shaping</text>
+
+  <!-- Final norm + LM head box -->
+  <rect x="444" y="158" width="156" height="44" rx="6" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+  <text x="522" y="174" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" fill="#0C447C">Final norm + LM head</text>
+  <text x="522" y="192" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#185FA5">policy path</text>
+
+  <!-- Latent collection label -->
+  <text x="340" y="239" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#444441">37 latent tensors collected (L0–L36) · stop-gradient barrier</text>
+
+  <!-- Horizontal collection line -->
+  <line x1="80" y1="256" x2="600" y2="256" stroke="#888780" stroke-width="0.5" stroke-dasharray="4 3" opacity="0.6"/>
+
+  <!-- Vertical tap lines -->
+  <line x1="130" y1="202" x2="130" y2="256" stroke="#888780" stroke-width="0.5" opacity="0.5"/>
+  <line x1="250" y1="202" x2="250" y2="256" stroke="#888780" stroke-width="0.5" opacity="0.5"/>
+  <line x1="374" y1="202" x2="374" y2="256" stroke="#888780" stroke-width="0.5" opacity="0.5"/>
+  <line x1="522" y1="202" x2="522" y2="256" stroke="#888780" stroke-width="0.5" opacity="0.5"/>
+
+  <!-- ── SPLIT ── -->
+
+  <!-- Left branch arrow: latents → value network -->
+  <line x1="210" y1="292" x2="210" y2="340" stroke="#888780" stroke-width="1" marker-end="url(#arrow)"/>
+  <text x="210" y="322" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#444441">every 3rd latent (×12)</text>
+
+  <!-- Right branch arrow: lm head → policy -->
+  <line x1="522" y1="292" x2="522" y2="340" stroke="#888780" stroke-width="1" marker-end="url(#arrow)"/>
+  <text x="522" y="322" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#444441">final hidden state</text>
+
+  <!-- VALUE NETWORK container -->
+  <rect x="60" y="340" width="310" height="200" rx="12" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text x="215" y="364" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#04342C">Value network</text>
+  <text x="215" y="382" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#085041">12 transformer layers · standalone</text>
+
+  <!-- Latent injection box -->
+  <rect x="80" y="396" width="126" height="44" rx="6" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <text x="143" y="412" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" fill="#26215C">Latent injection</text>
+  <text x="143" y="430" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#3C3489">gated SiLU encode</text>
+
+  <!-- Arrow inside value network -->
+  <line x1="206" y1="418" x2="222" y2="418" stroke="#888780" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <!-- Value transformer stack -->
+  <rect x="224" y="396" width="126" height="44" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text x="287" y="412" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" fill="#04342C">VL1 → VL12</text>
+  <text x="287" y="430" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#085041">cross-attends Qwen3</text>
+
+  <!-- Arrow: layers → HL-Gauss -->
+  <line x1="215" y1="440" x2="215" y2="462" stroke="#888780" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <!-- HL-Gauss head -->
+  <rect x="80" y="462" width="270" height="56" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <text x="215" y="482" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#412402">HL-Gauss head</text>
+  <text x="215" y="502" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#633806">51 reward bins · distributional output</text>
+
+  <!-- POLICY HEAD container -->
+  <rect x="390" y="340" width="230" height="200" rx="12" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+  <text x="505" y="364" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#042C53">Policy head</text>
+  <text x="505" y="382" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0C447C">LoRA adapters only</text>
+
+  <!-- Vocab projection box -->
+  <rect x="410" y="396" width="190" height="44" rx="6" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+  <text x="505" y="412" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" fill="#0C447C">Vocab projection</text>
+  <text x="505" y="430" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#185FA5">weight-tied embedding</text>
+
+  <!-- Arrow inside policy head -->
+  <line x1="505" y1="440" x2="505" y2="462" stroke="#888780" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <!-- Token distribution box -->
+  <rect x="410" y="462" width="190" height="56" rx="6" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+  <text x="505" y="482" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#0C447C">Token distribution</text>
+  <text x="505" y="502" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#185FA5">logits → softmax → next token</text>
+
+  <!-- ── OUTPUT ROW ── -->
+
+  <line x1="215" y1="518" x2="215" y2="590" stroke="#888780" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="505" y1="518" x2="505" y2="590" stroke="#888780" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <!-- V(s) output -->
+  <rect x="60" y="590" width="310" height="56" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+  <text x="215" y="610" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#412402">Value estimate V(s)</text>
+  <text x="215" y="630" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#633806">feeds GAE · trains at 10× policy LR</text>
+
+  <!-- Policy output -->
+  <rect x="390" y="590" width="230" height="56" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+  <text x="505" y="610" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#042C53">Policy output</text>
+  <text x="505" y="630" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0C447C">token generation · PPO update</text>
+
+  <!-- ── WORDLE ENV ── -->
+
+  <line x1="215" y1="646" x2="215" y2="700" stroke="#888780" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="505" y1="646" x2="505" y2="700" stroke="#888780" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <rect x="60" y="700" width="560" height="60" rx="12" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+  <text x="340" y="724" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#2C2C2A">Wordle environment (Rust / PyO3)</text>
+  <text x="340" y="744" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#5F5E5A">sparse reward · up to 6 turns · reward assigned at feedback tokens</text>
+
+  <!-- Reward feedback arrow (right side loop) -->
+  <path d="M620 730 L648 730 L648 42 L442 42" fill="none" stroke="#888780" stroke-width="0.5" stroke-dasharray="5 3" opacity="0.5" marker-end="url(#arrow)"/>
+  <text x="652" y="390" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#5F5E5A" transform="rotate(90,652,390)">reward signal</text>
+</svg>
