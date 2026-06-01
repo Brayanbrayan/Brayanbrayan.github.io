@@ -194,6 +194,8 @@ def __call__(self, tokens, positions, carry=None, *, rng_key):
 
 The system architecture looks like this:
 
+(/images/vaml_architecture.svg)
+
 ```
 (/images/vaml_architecture.svg)
 
