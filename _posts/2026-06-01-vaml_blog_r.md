@@ -98,9 +98,11 @@ If the final reward is +10, which of the three guesses was responsible? CRANE el
 
 With a critic that estimates $V(s)$ at each turn, we can compute **advantages**: how much better each action was than expected:
 
-$$A(\text{CRANE}) = V(s_1) - V(s_0) = 7.0 - 5.0 = +2.0$$
-$$A(\text{SHOUT}) = V(s_2) - V(s_1) = 9.5 - 7.0 = +2.5$$
-$$A(\text{SHORT}) = V(s_3) - V(s_2) = 10.0 - 9.5 = +0.5$$
+
+![Advantage CRANE](/images/vaml/advantage_crane.png)
+![Advantage SHOUT](/images/vaml/advantage_shout.png)
+![Advantage SHORT](/images/vaml/advantage_short.png)
+
 
 These advantages tell the policy optimizer exactly how much to reinforce each action, and in which direction.
 
