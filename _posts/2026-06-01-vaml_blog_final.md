@@ -194,37 +194,7 @@ def __call__(self, tokens, positions, carry=None, *, rng_key):
 
 The system architecture looks like this:
 
-```
-Input Tokens
-     │
-     ▼
-┌────────────────────────────────────────────────────────────┐
-│  QWEN3 BASE MODEL  (36 layers)                             │
-│                                                            │
-│  Embed → L1 → L2 → L3 → ... → L15 → ... → L36            │
-│    │      │    │    │           │           │              │
-│   [L0]  [L1] [L2] [L3]  ... [L15]  ... [L36]             │
-│    └──────┴────┴────┴──────────┴───────────┘              │
-│                  Latent Collection (37 tensors)            │
-│                           │                               │
-│                           ├──────────────────────────┐    │
-│                           │                          │    │
-│  → Final Norm → LM Head → Token Logits (Policy)     │    │
-└────────────────────────────────────────────────────────────┘
-                                                      │
-┌─────────────────────────────────────────────────────┘
-│  VALUE NETWORK  (12 transformer layers)
-│
-│  Sample every 3rd latent:
-│  [L0, L3, L6, L9, L12, L15, L18, L21, L24, L27, L30, L33, L36]
-│                                 ↓
-│    [VL1]─[VL2]─[VL3]─...─[VL12]
-│      ↑     ↑     ↑           ↑
-│     [L0]  [L3]  [L6]      [L33]   ← latents injected via cross-attention
-│                                 ↓
-│              HL-Gauss Head → distribution over 51 reward bins
-└──────────────────────────────────────────────────────────────
-```
+![system architecture](/images/vaml_architecture.svg)
 
 ### 4.2 The ValueBackbone
 
