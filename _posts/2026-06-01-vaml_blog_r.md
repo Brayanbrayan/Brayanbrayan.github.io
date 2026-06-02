@@ -223,7 +223,7 @@ def __call__(self, latents, positions, *, rng_key):
 
 Each value layer receives the corresponding Qwen3 latent via a gated injection:
 
-$$\mathbf{x}_{t+1} = \text{TransformerBlock}\!\left(\mathbf{x}_t + \text{ValueNetEncode}(\mathbf{h}_{\text{base}})\right)$$
+![ValueNetEncode gated injection](/images/vaml/valuenet_encode.png)
 
 The `ValueNetEncode` module uses a gated activation (SiLU) to selectively pass features from the Qwen3 representation into the value network's processing stream.
 
@@ -257,7 +257,7 @@ The base model's weights are updated only by the policy gradient (through LoRA);
 
 Storing 37 intermediate tensors per forward pass is expensive. For a batch of 8 sequences with sequence length 256 and hidden dimension 2560:
 
-$$\text{Memory} = 37 \times 8 \times 256 \times 2560 \times 2\ \text{bytes (bfloat16)} \approx 375\ \text{MB}$$
+![Memory calculation for latent collection](/images/vaml/memory_calc.png)
 
 This is just for the latent collection, before optimizer state. `jax.checkpoint()` mitigates this with a memory-compute tradeoff: during the forward pass, only layer *outputs* are stored; internal activations (QKV projections, attention scores, FFN intermediates) are discarded and recomputed on-demand during backpropagation.
 
@@ -279,11 +279,11 @@ Rather than predicting a scalar $V(s) \in \mathbb{R}$, the final value head outp
 
 The expected value is the weighted sum over bins:
 
-$$\hat{V}(s) = \sum_{i=1}^{51} p_i \cdot b_i, \quad b_i = -0.1 + \frac{1.2(i-1)}{50}$$
+![HL-Gauss expected value over bins](/images/vaml/hlgauss_expected.png)
 
 The training loss is KL divergence between the predicted distribution and a Gaussian centered on the GAE return target:
 
-$$\mathcal{L}_{\text{value}} = D_{\text{KL}}\!\left(\mathcal{N}\!\left(\hat{G}_t,\, \sigma^2\right) \;\Big\|\; \hat{p}_\phi(b)\right)$$
+![HL-Gauss training loss — KL divergence](/images/vaml/hlgauss_loss.png)
 
 The distributional output is motivated by the step-function finding described later. Before receiving feedback, there is genuine uncertainty about future reward. A scalar value collapses this uncertainty to a point estimate; a distribution preserves it. The width of the predicted distribution encodes the value network's confidence: narrow when the situation is clear, wide when it is not.
 
@@ -309,12 +309,12 @@ The value network trains at $10\times$ the policy learning rate and takes 4 grad
 
 The 3.7B-parameter Qwen3 base is not directly fine-tuned. Instead, Low-Rank Adaptation [5] inserts small trainable matrices into the attention and MLP layers:
 
-$$W_{\text{eff}} = W_{\text{frozen}} + \underbrace{B \cdot A}_{\text{rank-}r\text{ update}}, \quad A \in \mathbb{R}^{d \times r},\; B \in \mathbb{R}^{r \times d}$$
+![LoRA low-rank update rule](/images/vaml/lora_update.png)
 
 With rank $r = 32$ and hidden dimension $d = 2560$:
 
-$$\text{Parameters per layer} = 2 \times (d \times r) = 2 \times 2560 \times 32 = 163{,}840$$
-$$\text{Total LoRA parameters} = 36\ \text{layers} \times 163{,}840 \approx 23\ \text{M}$$
+![LoRA parameters per layer](/images/vaml/lora_params_layer.png)
+![LoRA total trainable parameters](/images/vaml/lora_params_total.png)
 
 This is approximately 0.6% of the full model, a 160× reduction in trainable parameters, while keeping optimizer state requirements at around 200 MB instead of 30 GB.
 
@@ -409,7 +409,7 @@ The model generates the guess tokens (policy mask = True). The environment gener
 
 VAML uses Generalized Advantage Estimation [6] to compute advantages from the value network's predictions. GAE introduces a bias-variance tradeoff parameter $\lambda$:
 
-$$A_t^{\text{GAE}(\gamma,\lambda)} = \sum_{l=0}^{\infty} (\gamma\lambda)^l \delta_{t+l}, \quad \delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)$$
+![Generalized Advantage Estimation definition](/images/vaml/gae.png)
 
 With $\lambda = 0$: pure TD(0), high bias, low variance. With $\lambda = 1$: Monte Carlo returns, low bias, high variance. The config uses `gae_lambda = 1.0`, effectively Monte Carlo returns, which makes sense given the sparse reward structure (few intermediate signals to bootstrap from).
 
@@ -451,21 +451,21 @@ This prevents the GAE estimator from "looking backward" across turns. Without it
 
 The complete PPO loss combines three terms:
 
-$$\mathcal{L} = \mathcal{L}_{\text{policy}} + \mathcal{L}_{\text{value}} - \beta_{\text{ent}} \cdot H(\pi)$$
+![Full PPO objective](/images/vaml/ppo_full.png)
 
 **Clipped policy loss** with asymmetric bounds ($\varepsilon_{\text{low}} = 0.2$, $\varepsilon_{\text{high}} = 0.28$):
 
-$$\mathcal{L}_{\text{policy}} = -\mathbb{E}_t \left[ \min\!\left( \rho_t A_t,\; \text{clip}(\rho_t, 1-\varepsilon_{\text{low}}, 1+\varepsilon_{\text{high}}) \cdot A_t \right) \right]$$
+![PPO clipped policy loss](/images/vaml/ppo_policy.png)
 
 where $\rho_t = \pi_\theta(a_t|s_t) / \pi_{\theta_{\text{old}}}(a_t|s_t)$ is the probability ratio.
 
 **Distributional value loss:**
 
-$$\mathcal{L}_{\text{value}} = \mathbb{E}_t\!\left[ D_{\text{KL}}\!\left(\mathcal{N}(G_t^{\text{GAE}}, \sigma^2) \;\Big\|\; \hat{p}_\phi(b)\right) \right]$$
+![Distributional value loss](/images/vaml/ppo_value_loss.png)
 
 **Entropy regularization** to maintain exploration:
 
-$$H(\pi) = -\sum_a \pi_\theta(a|s) \log \pi_\theta(a|s)$$
+![Entropy regularization](/images/vaml/entropy.png)
 
 ---
 
@@ -532,7 +532,7 @@ The experimental question is direct: does VAML's 12-layer critic provide benefit
 
 GRPO's insight is that you can estimate advantages without a critic if you generate multiple rollouts for the same prompt and normalize returns within each group:
 
-$$A_i^{(g)} = \frac{R_i - \mu_g}{\sigma_g + \epsilon}, \quad \mu_g = \frac{1}{k}\sum_{i=1}^k R_i^{(g)}, \quad \sigma_g = \sqrt{\frac{1}{k}\sum_{i=1}^k (R_i^{(g)} - \mu_g)^2}$$
+![GRPO group-relative advantage normalization](/images/vaml/grpo_advantage.png)
 
 For this to produce meaningful comparisons in Wordle, all rollouts within group $g$ must play the *same* secret word. Otherwise, the variance in returns reflects word difficulty rather than policy quality, and the normalization becomes meaningless.
 
@@ -625,7 +625,7 @@ No dynamic indexing. No data-dependent branches. XLA compiles this once and reus
 
 The full objective combines the PPO clipped surrogate with a stronger KL penalty and entropy bonus:
 
-$$\mathcal{L}_{\text{GRPO}} = \underbrace{-\min\!\left(\rho A,\; \text{clip}(\rho,\, 1-\varepsilon,\, 1+\varepsilon) \cdot A\right)}_{\text{clipped surrogate}} + \underbrace{\beta_{\text{KL}} \cdot D_{\text{KL}}(\pi_{\text{old}} \| \pi_\theta)}_{\text{stability penalty}} - \underbrace{\beta_{\text{ent}} \cdot H(\pi_\theta)}_{\text{exploration bonus}}$$
+![GRPO full loss function](/images/vaml/grpo_loss.png)
 
 with $\beta_{\text{KL}} = 0.05$ (versus PPO's typical 0.01) and $\beta_{\text{ent}} = 0.01$. The stronger KL penalty compensates for the absent value baseline: without a critic to reduce advantage variance, the policy is more prone to making large, potentially destabilizing updates.
 
