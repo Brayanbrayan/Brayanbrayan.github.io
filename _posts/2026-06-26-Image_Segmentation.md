@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "From Pixels to Labels: Building a Satellite Image Segmentation Model"
-date: 2025-06-25
+date: 2026-06-26
 categories: [machine-learning, computer-vision]
 ---
 
