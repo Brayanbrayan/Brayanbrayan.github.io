@@ -236,6 +236,6 @@ Transitioning from sequence modeling to spatial vision highlighted three core en
 
 **Training metrics and evaluation metrics measure distinct objectives.** During optimization, loss is calculated over 0.038% of available pixels. At test time, validation metrics evaluate 100% of the grid. Closing that generalization gap is the fundamental challenge of weakly supervised learning.
 
-Full code on [GitHub](https://github.com/Brayanbrayan). Dataset: [LandCover.ai](https://landcover.ai).
+Full code on [GitHub](https://github.com/Brayanbrayan/Image-Segmentation). Dataset: [LandCover.ai](https://landcover.ai).
 
 ![all_experiments](/images/all_experiments.png)
