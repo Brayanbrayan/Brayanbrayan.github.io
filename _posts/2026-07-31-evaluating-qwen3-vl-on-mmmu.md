@@ -10,19 +10,19 @@ categories: machine-learning computer-vision
 
 ---
 
-Most of my work this year has been on the language modeling side: building transformers from scratch, running alignment experiments, comparing PPO against GRPO against DPO. I wanted to spend time on the other half of the multimodal picture, loading and evaluating a vision-language model locally, not through an API, and seeing what actually breaks when a model has to look at an image and reason its way to an answer.
+Most of my work this year has been on the language modeling side: building transformers from scratch, running alignment experiments, comparing PPO against GRPO against DPO. I spent time on the multimodal picture, loading and evaluating a vision-language model locally.
 
-I picked Qwen3-VL-2B-Instruct and MMMU as the benchmark: college-level questions spanning multiple disciplines, with images embedded directly into the question. The interesting engineering problem here wasn't squeezing out the highest possible accuracy. It was building a pipeline that survives the real conditions of running a 2B parameter model on constrained, unreliable compute: memory limits, session disconnects, malformed outputs, all of it. This post is about that pipeline, what broke, and what the results actually showed once it worked.
+I used Qwen3-VL-2B-Instruct and MMMU as the benchmark: college-level questions spanning multiple disciplines, with images embedded directly into the question. The interesting engineering problem here wasn't squeezing out the highest possible accuracy. It was building a pipeline that survives the real conditions of running a 2B parameter model on constrained, unreliable compute: memory limits, session disconnects, malformed outputs, all of it. This post is about that pipeline, what broke, and what the results actually showed once it worked.
 
 ---
 
 ## Table of Contents
 
-1. [Five modules, one job each](#1-five-modules-one-job-each)
-2. [Loading the model without guessing at device placement](#2-loading-the-model-without-guessing-at-device-placement)
-3. [Three bugs that compounded into one cascade](#3-three-bugs-that-compounded-into-one-cascade)
-4. [Resumability, and what "done" actually means](#4-resumability-and-what-done-actually-means)
-5. [Running on compute that disappears](#5-running-on-compute-that-disappears)
+1. [ modules](#1-five-modules-one-job-each)
+2. [Loading the model](#2-loading-the-model-without-guessing-at-device-placement)
+3. [Bugs ](#3-three-bugs-that-compounded-into-one-cascade)
+4. [Resumability](#4-resumability-and-what-done-actually-means)
+5. [compute ](#5-running-on-compute-that-disappears)
 6. [Results](#6-results)
 7. [What I'd do differently](#7-what-id-do-differently)
 
