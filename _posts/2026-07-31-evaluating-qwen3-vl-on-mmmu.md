@@ -1,5 +1,5 @@
 ---
-title: "Evaluating Qwen3-VL-2B-Instruct: Building a Pipeline That Doesn't Lose Work"
+title: "Evaluating Qwen3-VL-2B-Instruct:"
 date: 2026-07-30
 categories: machine-learning computer-vision
 ---
