@@ -28,7 +28,7 @@ I used Qwen3-VL-2B-Instruct and MMMU as the benchmark: college-level questions s
 
 ---
 
-## 1. Five Modules, One Job Each
+## 1. Modules
 
 The pipeline splits into five files, each with exactly one responsibility and, more importantly, exactly one way it can be wrong.
 
@@ -44,7 +44,7 @@ The point of drawing the boundaries this way is that a bug in how I parse MMMU's
 
 ---
 
-## 2. Loading the Model Without Guessing at Device Placement
+## 2. Loading the Model 
 
 The model loads through `AutoModelForImageTextToText` rather than importing a specific model class by name. Every checkpoint on Hugging Face ships with a config file declaring its own architecture, and the Auto class reads that config and dispatches to the matching implementation automatically. Swap the model ID to a different VLM later and `model.py` needs zero changes.
 
@@ -65,7 +65,7 @@ The processor gets explicit `min_pixels` and `max_pixels` bounds, `256*28*28` to
 
 ---
 
-## 3. Three Bugs That Compounded Into One Cascade
+## 3. Bugs 
 
 The first full run against all 100 samples came back with `inference_errors: 100` and `completed: 0`. Every single sample failed. Here's what was actually going on, in the order I found it.
 
@@ -87,7 +87,7 @@ The three bugs compounded in a specific way. The dtype issue created uncertainty
 
 ---
 
-## 4. Resumability, and What "Done" Actually Means
+## 4. Resumability
 
 The spec I was working against required the pipeline to survive being killed mid-run and resumed without redoing completed work or silently skipping anything. That shaped `pipeline.py` from the start rather than getting bolted on afterward.
 
@@ -99,7 +99,7 @@ I tested this by killing the process mid-run with a keyboard interrupt and resta
 
 ---
 
-## 5. Running on Compute That Disappears
+## 5.Compute
 
 My development machine has 4GB of RAM. Loading a 4.3GB checkpoint in float32 on CPU, the default without an explicit dtype, needs roughly 8.5GB, and the OS killed the process before it could finish loading. The math checks out cleanly: the checkpoint is stored in bfloat16, 2 bytes per parameter at 2B parameters, and float32 doubles that.
 
