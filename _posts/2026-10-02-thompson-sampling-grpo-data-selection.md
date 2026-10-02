@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Choosing what to train on: Thompson sampling for GRPO data selection"
+title: "Thompson sampling for GRPO data selection"
 date: 2026-10-02
 categories: [machine-learning, post-training, rl]
 ---
@@ -13,7 +13,7 @@ This is the scheduling problem in post-training, stripped to its bones. It's the
 
 This post is about how I solved it. Two layers: a scheduler for the case where every task is safe to train on, and a second layer for when some tasks actively damage the model. Both are in the same file, roughly 150 lines of Python.
 
-## The constraint that shapes everything
+## The constraint
 
 Before the scheduler, the thing it has to schedule around.
 
@@ -25,7 +25,7 @@ In a normal training run, this doesn't matter much, because you run epochs over 
 
 So the scheduler's job is: find tasks whose current pass rate is near 0.5, and spend as much of the budget there as possible. That's it. Everything else is a mechanism for doing that under uncertainty.
 
-## What a normal scheduler looks like
+##a normal scheduler
 
 The baseline is uniform round-robin. Take the task bank in order, spend 8 rollouts on each (one group), then move to the next, wrap around, repeat until the budget runs out. Six epochs over 120 tasks at group size 8 is exactly 5,760 rollouts.
 
