@@ -101,7 +101,7 @@ GRPO was the cheap place to find it. The same bug had already spoiled my first d
 
 With sampling fixed, the first full GRPO run rewarded a correct final boxed number and nothing else. Within about 65 steps the share of answers that stopped on their own fell from 0.95 to zero, and it stayed there. Every answer ran to the 384-token cap.
 
-![Mean answer length and the share of answers that stop on their own, for distillation and the first GRPO run](/images/length_and_finish(1).png)
+![Mean answer length and the share of answers that stop on their own, for distillation and the first GRPO run](/images/length_and_finish.png)
 
 *Figure 1. Left: mean answer length in tokens. Right: share of answers that stop on their own. Both are averaged over each step's 16 training answers and smoothed over 10 steps. Blue is distillation (seed 0), orange is the first GRPO run, whose reward ignored stopping.*
 
