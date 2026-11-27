@@ -101,7 +101,7 @@ GRPO was the cheap place to find it. The same bug had already spoiled my first d
 
 With sampling fixed, the first full GRPO run rewarded a correct final boxed number and nothing else. Within about 65 steps the share of answers that stopped on their own fell from 0.95 to zero, and it stayed there. Every answer ran to the 384-token cap.
 
-![Mean answer length and the share of answers that stop on their own, for distillation and the first GRPO run](https://brayanbrayan.github.io/images/opdtpublog/length_and_finish.png)
+![Mean answer length and the share of answers that stop on their own, for distillation and the first GRPO run](/images/length_and_finish.png)
 
 *Figure 1. Left: mean answer length in tokens. Right: share of answers that stop on their own. Both are averaged over each step's 16 training answers and smoothed over 10 steps. Blue is distillation (seed 0), orange is the first GRPO run, whose reward ignored stopping.*
 
@@ -115,7 +115,7 @@ My first exam was the first 192 test problems with answers capped at 384 tokens.
 
 A single accuracy on 192 problems carries about plus or minus 7 points. Two distillation seeds with identical settings were 13 points apart at step 50 (43.8% and 56.8%). I had read the first as a sign the learning rate was too high.
 
-![Accuracy on the 192-problem monitor against student-generated tokens for distillation and GRPO runs](https://brayanbrayan.github.io/images/opdtpublog/accuracy_vs_tokens_final.png)
+![Accuracy on the 192-problem monitor against student-generated tokens for distillation and GRPO runs](images/accuracy_vs_tokens_final.png)
 
 *Figure 2. The 192-problem monitor (384-token cap) against student tokens generated, for the distillation seeds and learning rates and the two GRPO runs. Each point carries a 95% interval of about plus or minus 7 points. Compare the two distillation seeds at the first checkpoint.*
 
@@ -142,7 +142,7 @@ So the final protocol is this. Every checkpoint is evaluated greedily on the fir
 
 *Table 1. First 1,312 GSM8K test problems, greedy decoding, 640-token cap. Both GRPO rows require an answer to finish to earn reward. The teacher's pass@1 is over all 1,319 problems and its paired change is over the first 1,312.*
 
-![Paired change in accuracy against the untrained student for each run, with 95% intervals](https://brayanbrayan.github.io/images/opdtpublog/final_paired_change.png)
+![Paired change in accuracy against the untrained student for each run, with 95% intervals](/images/final_paired_change.png)
 
 *Figure 3. Change in accuracy against the untrained student, in points, with paired 95% bootstrap intervals. The right panel zooms on the student-training runs.*
 
@@ -171,7 +171,7 @@ SFT matched distillation for about 17 minutes in all against 24. The efficiency 
 
 The one clean effect in the logs is the reverse KL itself.
 
-![Mean per-token reverse KL estimate over 230 distillation steps](https://brayanbrayan.github.io/images/opdtpublog/reverse_kl.png)
+![Mean per-token reverse KL estimate over 230 distillation steps](/images/reverse_kl.png)
 
 *Figure 4. The estimate `log p_student - log p_teacher` averaged over all answer tokens in each step (light line) and its 10-step mean (orange), distillation seed 0.*
 
